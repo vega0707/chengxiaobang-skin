@@ -161,7 +161,7 @@ function buildPayload() {
     voiceBtn.id = "cxb-gf-voice-toggle";
     voiceBtn.title = "女友语音：点击静音 / 恢复";
     voiceBtn.setAttribute("aria-label", "切换女友语音");
-    voiceBtn.innerHTML = '<span class="vx-on">🔊</span><span class="vx-off">🔇</span>';
+    voiceBtn.innerHTML = '<span class="vx-on"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></span><span class="vx-off"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg></span>';
     voiceBtn.style.cssText = "position:fixed;right:14px;bottom:14px;z-index:2147483000;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);background:rgba(15,12,10,0.55);backdrop-filter:blur(6px);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,0.35);transition:transform .12s,opacity .12s;";
     const renderVoiceBtn = () => {
       voiceBtn.querySelector(".vx-on").style.display = voiceMuted ? "none" : "inline";
