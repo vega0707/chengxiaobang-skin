@@ -99,6 +99,10 @@ function readVideo(dir, state) {
   return "data:video/webm;base64," + fs.readFileSync(path.join(dir, state + ".webm")).toString("base64");
 }
 
+function readVoice(dir, state) {
+  return "data:audio/mpeg;base64," + fs.readFileSync(path.join(dir, state + ".mp3")).toString("base64");
+}
+
 function buildPayload() {
   const cyberCss = fs.readFileSync(path.join(HERE, "assets", "gf-skin.css"), "utf8");
   const warmCss = fs.readFileSync(path.join(HERE, "assets", "gf-warm.css"), "utf8");
@@ -111,10 +115,18 @@ function buildPayload() {
   const warmVideos = {};
   for (const s of CYBER_STATES) warmVideos[s] = warmBase[WARM_REUSE[s]];
 
+  // 状态语音：每个主题一套（cyber=晓伊活泼甜美 / warm=晓晓温柔知性），见 tools/tts.mjs
+  const voiceDir = path.join(HERE, "assets", "voice");
+  const voiceSets = { cyber: {}, warm: {} };
+  for (const t of ["cyber", "warm"]) {
+    for (const s of CYBER_STATES) voiceSets[t][s] = readVoice(path.join(voiceDir, t), s);
+  }
+
   const payload = `(() => {
     const KEY = "__CXB_GF_SKIN__";
     if (window[KEY]) return "already";
     const THEMES = ${JSON.stringify({ cyber: { css: cyberCss, videos: cyberVideos }, warm: { css: warmCss, videos: warmVideos } })};
+    const VOICES = ${JSON.stringify(voiceSets)};
 
     // 注入样式（随主题切换）
     const style = document.createElement("style");
@@ -136,6 +148,62 @@ function buildPayload() {
     veil.id = "cxb-gf-veil";
     document.body.appendChild(veil);
 
+    // 状态语音层（隐藏 audio，进入状态时播一句，不循环）
+    const voice = document.createElement("audio");
+    voice.id = "cxb-gf-voice";
+    voice.preload = "auto";
+    document.body.appendChild(voice);
+
+    // ---- 语音开关（右下角悬浮圆钮，点击静音/恢复，状态持久化到 localStorage）----
+    let voiceMuted = false;
+    try { voiceMuted = localStorage.getItem("cxb-gf-voice-muted") === "1"; } catch {}
+    const voiceBtn = document.createElement("button");
+    voiceBtn.id = "cxb-gf-voice-toggle";
+    voiceBtn.title = "女友语音：点击静音 / 恢复";
+    voiceBtn.setAttribute("aria-label", "切换女友语音");
+    voiceBtn.innerHTML = '<span class="vx-on">🔊</span><span class="vx-off">🔇</span>';
+    voiceBtn.style.cssText = "position:fixed;right:14px;bottom:14px;z-index:2147483000;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);background:rgba(15,12,10,0.55);backdrop-filter:blur(6px);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,0.35);transition:transform .12s,opacity .12s;";
+    const renderVoiceBtn = () => {
+      voiceBtn.querySelector(".vx-on").style.display = voiceMuted ? "none" : "inline";
+      voiceBtn.querySelector(".vx-off").style.display = voiceMuted ? "inline" : "none";
+      voiceBtn.style.opacity = voiceMuted ? "0.55" : "1";
+    };
+    voiceBtn.addEventListener("mouseenter", () => { voiceBtn.style.transform = "scale(1.08)"; });
+    voiceBtn.addEventListener("mouseleave", () => { voiceBtn.style.transform = "scale(1)"; });
+    voiceBtn.addEventListener("click", () => {
+      voiceMuted = !voiceMuted;
+      try { localStorage.setItem("cxb-gf-voice-muted", voiceMuted ? "1" : "0"); } catch {}
+      if (voiceMuted) voice.pause(); // 点静音时立刻停掉正在说的句子
+      renderVoiceBtn();
+    });
+    renderVoiceBtn();
+    document.body.appendChild(voiceBtn);
+
+    // ---- 语音播放：仅在状态真正切换（switchVideo）时触发一句 ----
+    // 核心：一次任务运行（running 期间）内，thinking/speaking/acting/approval 每个状态只说一次，
+    // 避免任务中状态来回切换导致同一句反复播；新任务开始才重置计数。
+    // idle/listening/done 不在运行会话内，走冷却：idle 2 分钟、listening 1 分钟、done 8 秒。
+    const RUN_ONCE = ["thinking", "speaking", "acting", "approval"];
+    const VOICE_COOLDOWN = { idle: 120000, listening: 60000, done: 8000 };
+    const lastVoiceAt = {};
+    let saidInSession = {};
+    const say = (s) => {
+      if (voiceMuted) return;
+      const vset = VOICES[theme] || VOICES.cyber; // 语音随主题切换：夜间晓伊 / 白天晓晓
+      const src = vset[s] || vset.idle;
+      const now = Date.now();
+      if (RUN_ONCE.includes(s)) {
+        if (saidInSession[s]) return;
+        saidInSession[s] = true;
+      } else {
+        const cd = VOICE_COOLDOWN[s] || 8000;
+        if (now - (lastVoiceAt[s] || 0) < cd) return;
+        lastVoiceAt[s] = now;
+      }
+      voice.src = src;
+      voice.play().catch(() => {});
+    };
+
     // ---- 主题管理：跟随程小帮深浅外观 ----
     let theme = "cyber";
     const detectTheme = () => document.documentElement.classList.contains("dark") ? "cyber" : "warm";
@@ -149,7 +217,7 @@ function buildPayload() {
       if (t !== theme) { applyTheme(t); setTarget("idle"); }
     }).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 
-    // ---- 状态机：检测程小帮任务状态，切换视频（全部静音） ----
+    // ---- 状态机：检测程小帮任务状态，切换视频（视频静音，语音由 say 独立播放） ----
     // 只用结构信号（停止按钮/spinner/流式/输入框），不用全文文字匹配——
     // 全文匹配会把聊天内容里的词（"等待确认""全部完成"）误判成状态。
     // 只用结构信号（停止按钮/spinner/流式/输入框），不用全文文字匹配——
@@ -167,6 +235,7 @@ function buildPayload() {
       video.src = THEMES[theme].videos[s] || THEMES[theme].videos.idle;
       video.muted = true;
       video.play().catch(() => {});
+      say(s); // 进入新状态：播一句台词（同状态重播不触发）
     };
     const setTarget = (s) => { target = s; };
     const advance = () => {
@@ -194,6 +263,7 @@ function buildPayload() {
 
         const running = hasStop || hasSpinner || streaming;
         if (running) {
+          if (!wasRunning) saidInSession = {}; // 新任务会话：重置「每状态只播一次」
           wasRunning = true;
           if (hasApproval) return setTarget("approval");
           if (streaming) return setTarget("speaking");
@@ -232,6 +302,8 @@ function buildRemoveScript() {
     document.getElementById("cxb-gf-style-host")?.remove();
     document.getElementById("cxb-gf-background")?.remove();
     document.getElementById("cxb-gf-live")?.remove();
+    document.getElementById("cxb-gf-voice")?.remove();
+    document.getElementById("cxb-gf-voice-toggle")?.remove();
     document.getElementById("cxb-gf-veil")?.remove();
     document.documentElement.classList.remove("cxb-gf-skin");
     document.documentElement.style.removeProperty("--gf-portrait");

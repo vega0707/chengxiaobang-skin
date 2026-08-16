@@ -1,0 +1,9 @@
+{
+  "name": "chengxiaobang-skin-tools",
+  "private": true,
+  "type": "module",
+  "description": "皮肤语音生成工具（Edge TTS）",
+  "dependencies": {
+    "msedge-tts": "^2.0.7"
+  }
+}

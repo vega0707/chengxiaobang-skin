@@ -6,6 +6,7 @@
 
 - 双主题：赛博（深色）+ 暖白（浅色），跟随程小帮深浅外观自动切换
 - 7 个状态视频（idle/listening/thinking/speaking/acting/approval/done），暖白主题复用映射
+- 昼夜双声线语音：每个阶段一句短台词，夜间晓伊（甜美）/ 白天晓晓（温柔）随主题切换，不循环、防重复、右下角可静音
 - 播完一轮再切，排队只留最新状态（不硬切、不闪烁）
 - 官方径向 mask 羽化，女友中心清晰、边缘自然融入
 - 输入框强制不透明，其他面板半透明透出女友
@@ -52,8 +53,11 @@ node cxbskin.mjs --remove
 
 ```
 chengxiaobang-skin/
-├── cxbskin.mjs              # 注入器（CDP 注入 CSS + 视频 + 状态机）
+├── cxbskin.mjs              # 注入器（CDP 注入 CSS + 视频 + 状态机 + 状态语音）
 ├── install-auto-skin.sh     # 一键 wrapper：默认启动即带端口 + 自动注入（可 --remove 还原）
+├── tools/
+│   ├── tts.mjs              # 状态语音生成脚本（Edge TTS，可改台词重新生成）
+│   └── package.json
 ├── assets/
 │   ├── gf-skin.css          # 赛博主题 CSS
 │   ├── gf-warm.css          # 暖白主题 CSS
@@ -63,7 +67,7 @@ chengxiaobang-skin/
 │   │   └── warm-white/      # 暖白主题视频（3 个 + 复用映射）
 │   │       └── states/*.webm
 │   └── voice/
-│       └── speaking.mp4     # 官方说话配音（保留，当前静音）
+│       └── *.mp3            # 7 个状态各一句台词（idle/listening/thinking/speaking/acting/approval/done）
 └── README.md
 ```
 
@@ -129,8 +133,32 @@ html.cxb-gf-skin .bg-popover:has(textarea) {
 | approval | → idle |
 | done | → idle |
 
-### 8. 官方配音
-`assets/voice/speaking.mp4` 是官方说话配音（6 秒 AAC），当前静音（用户可选择恢复）。恢复方法：在 `cxbskin.mjs` 的 `switchVideo` 里，当 `s === "speaking"` 时用 `speaking.mp4` 的 data URL 并 `video.muted = false`。
+### 8. 状态语音
+`assets/voice/<theme>/<state>.mp3` 是两套状态台词（每套 7 句），**语音随主题自动切换**：
+
+| 主题 | 音色 | 参数 | 氛围 |
+|---|---|---|---|
+| cyber（夜间/深色） | 晓伊 XiaoyiNeural | 语速 +15%、音调 +6Hz | 年轻甜美，接近官方配音 |
+| warm（白天/浅色） | 晓晓 XiaoxiaoNeural | 语速 +8%、音调 +2Hz | 温柔知性，更温馨 |
+
+台词（两套相同）：
+
+| 状态 | 台词 |
+|---|---|
+| idle | 嗯，我在呢 |
+| listening | 好呀，我听着呢 |
+| thinking | 让我想想哦 |
+| speaking | 马上就好啦 |
+| acting | 好嘞，这就去办 |
+| approval | 这个需要你确认一下哦 |
+| done | 搞定啦 |
+
+- 只在**状态切换**（`switchVideo`）时播一句，同状态重播不触发；语音不循环。
+- 防重复播报：一次任务运行内 thinking/speaking/acting/approval 每个状态只说一次（新任务才重置）；
+  idle 2 分钟、listening 1 分钟、done 8 秒冷却。
+- 语音开关：右下角悬浮圆钮（🔊/🔇），点击静音/恢复，状态存 localStorage（重启程小帮仍保持）。
+- 视频保持静音，语音由独立 `<audio>` 播放（互不影响）。
+- 改台词/音色：`cd tools && node tts.mjs` 重新生成（改 `tools/tts.mjs` 里的 `THEMES`/`LINES`，首次 `npm i`）。
 
 ## 换机器安装
 
@@ -154,6 +182,14 @@ const WARM_REUSE = { idle: "idle", listening: "listening", thinking: "listening"
 
 ## 更新日志
 
+- **2026-08-16 · 市场 rev 5（0.5.0）**：
+  - 语音随主题切换双声线：夜间赛博用晓伊（活泼甜美）、白天暖白用晓晓（温柔知性）
+  - 右下角语音开关（🔊/🔇）：点击静音/恢复，状态本地持久化
+- **2026-08-16 · 市场 rev 4（0.4.0）**：
+  - 7 个状态各配一句短台词（晓伊中文女声，Edge TTS 在线合成，声线参考官方配音），进入阶段播一句、不循环
+  - 防重复播报：一次任务运行内每个运行态只说一次（thinking/speaking/acting/approval），新任务才重置；idle 2 分钟、listening 1 分钟冷却
+  - 新增 `tools/tts.mjs` 语音生成脚本（可改台词重新生成）
+  - 说明：vivideo.ai 的声音只是视频配音资产、无法导出单句语音，故改用微软 Edge TTS
 - **2026-08-16 · 市场 rev 3（0.3.0）**：
   - 新增斜杠命令 `/install-auto-skin`：一键安装/还原启动包装器（默认启动即带皮肤）
 - **2026-08-16 · 市场 rev 2（0.2.0）**：
