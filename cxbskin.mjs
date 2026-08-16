@@ -250,9 +250,10 @@ function buildPayload() {
     let wasRunning = false;
     let doneUntil = 0;
     // 完成确认：运行停止后连续 DONE_CONFIRM_MS 无新活动，才算「整个事情做完」才播搞定
+    // 3 秒：做完几乎立即反馈，同时过滤输出中途的短暂停顿
     let donePending = false;
     let doneSince = 0;
-    const DONE_CONFIRM_MS = 8000;
+    const DONE_CONFIRM_MS = 3000;
     const switchVideo = (s) => {
       cur = s;
       video.src = THEMES[theme].videos[s] || THEMES[theme].videos.idle;
