@@ -291,16 +291,24 @@ function buildPayload() {
         const hasSpinner = [...scopeRoot.querySelectorAll('[class*="animate-spin"],[class*="spinner"],[data-testid*="think"]')].some(vis);
         // 授权弹窗是模态、只属于当前任务，保持全局检测
         const hasApproval = [...document.querySelectorAll('[role="dialog"] button[aria-label*="允许"], [role="dialog"] button[aria-label*="批准"], [role="dialog"] button[aria-label*="授权"], [class*="approval"], [class*="permission"]')].some(vis);
+        // 状态行信号：程小帮思考/执行时的固定 UI 文案（限当前对话作用域内、短文本叶子节点）
+        const stateLine = (re) => [...scopeRoot.querySelectorAll("p,span,div")].some((e) => {
+          if (!vis(e) || e.children.length > 0) return false;
+          const t = (e.textContent || "").trim();
+          return t.length > 0 && t.length < 14 && re.test(t);
+        });
+        const hasThinking = stateLine(/^正在思考|^思考中/);
+        const hasRunning = stateLine(/^运行命令中|^正在运行|^执行中|^调用.*中$/);
 
-        const running = hasStop || hasSpinner || streaming;
+        const running = hasStop || hasSpinner || streaming || hasThinking || hasRunning;
         if (running) {
           if (!wasRunning) saidInSession = {}; // 新任务会话：重置「每状态只播一次」
           wasRunning = true;
           donePending = false; // 任务还在跑，取消完成确认
           if (hasApproval) return setTarget("approval");
           if (streaming) return setTarget("speaking");
-          if (hasSpinner) return setTarget("thinking");
-          return setTarget("acting");
+          if (hasThinking || hasSpinner) return setTarget("thinking");
+          return setTarget("acting"); // hasStop / hasRunning
         }
         // 运行刚停止：进入「完成确认」窗口，不立即报完成
         if (wasRunning) {
