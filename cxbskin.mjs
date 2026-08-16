@@ -223,11 +223,16 @@ function buildPayload() {
       voice.play().catch(() => {});
     };
     // 主题切换提示：绕过冷却/会话去重，强制播一句当前主题语音（静音时除外；正在播的语音不打断）
+    // 5 秒冷却：一次主题切换过程（class 可能多次变化）只播一次，避免多个「我在呢」连播
+    let lastForcedAt = 0;
     const sayForced = (s) => {
       if (voiceMuted) return;
       if (!voice.paused) return;
+      const now = Date.now();
+      if (now - lastForcedAt < 5000) return;
+      lastForcedAt = now;
       const vset = VOICES[theme] || VOICES.cyber;
-      lastPlayedAt = Date.now();
+      lastPlayedAt = now;
       voice.src = vset[s] || vset.idle;
       voice.play().catch(() => {});
     };
