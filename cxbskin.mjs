@@ -203,6 +203,7 @@ function buildPayload() {
       // 只给当前激活窗口配音：后台窗口/其他进程的任务不播，避免多个任务一起出声
       if (!document.hasFocus()) return;
       if (s === "idle") return; // 空闲不说话（主题切换提示走 sayForced）
+      if (!voice.paused) return; // 当前语音正在播：让它讲完（官方配音 6 秒），不中途打断
       const now = Date.now();
       // speaking（官方配音）是核心反馈，与 done/approval 一样豁免全局间隔
       const isImportant = s === "done" || s === "approval" || s === "speaking";
@@ -221,9 +222,10 @@ function buildPayload() {
       voice.src = src;
       voice.play().catch(() => {});
     };
-    // 主题切换提示：绕过冷却/会话去重，强制播一句当前主题语音（静音时除外）
+    // 主题切换提示：绕过冷却/会话去重，强制播一句当前主题语音（静音时除外；正在播的语音不打断）
     const sayForced = (s) => {
       if (voiceMuted) return;
+      if (!voice.paused) return;
       const vset = VOICES[theme] || VOICES.cyber;
       lastPlayedAt = Date.now();
       voice.src = vset[s] || vset.idle;
