@@ -189,6 +189,8 @@ function buildPayload() {
     let saidInSession = {};
     const say = (s) => {
       if (voiceMuted) return;
+      // 只给当前激活窗口配音：后台窗口/其他进程的任务不播，避免多个任务一起出声
+      if (!document.hasFocus()) return;
       const vset = VOICES[theme] || VOICES.cyber; // 语音随主题切换：夜间晓伊 / 白天晓晓
       const src = vset[s] || vset.idle;
       const now = Date.now();
@@ -259,9 +261,13 @@ function buildPayload() {
 
         // 结构信号（全部要求可见：隐藏的加载图标/动画不能误判为运行中）
         const vis = (el) => !!el && el.offsetWidth > 0 && el.offsetHeight > 0;
-        const hasStop = [...document.querySelectorAll('button[aria-label*="停止"],button[aria-label*="中断"],button[aria-label*="stop" i]')].some(vis);
-        const hasSpinner = [...document.querySelectorAll('[class*="animate-spin"],[class*="spinner"],[data-testid*="think"]')].some(vis);
-        // 授权卡片：只认可见的确认/授权弹窗按钮
+        // 运行信号限定在当前对话的布局作用域（.chat-layout-scope）内：
+        // 同窗口其他后台任务/任务面板的信号不触发本对话语音；找不到作用域时回退全局
+        const chatScope = [...document.querySelectorAll(".chat-layout-scope")].find(vis);
+        const scopeRoot = chatScope || document;
+        const hasStop = [...scopeRoot.querySelectorAll('button[aria-label*="停止"],button[aria-label*="中断"],button[aria-label*="stop" i]')].some(vis);
+        const hasSpinner = [...scopeRoot.querySelectorAll('[class*="animate-spin"],[class*="spinner"],[data-testid*="think"]')].some(vis);
+        // 授权弹窗是模态、只属于当前任务，保持全局检测
         const hasApproval = [...document.querySelectorAll('[role="dialog"] button[aria-label*="允许"], [role="dialog"] button[aria-label*="批准"], [role="dialog"] button[aria-label*="授权"], [class*="approval"], [class*="permission"]')].some(vis);
 
         const running = hasStop || hasSpinner || streaming;
