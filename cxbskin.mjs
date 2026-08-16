@@ -187,13 +187,18 @@ function buildPayload() {
     const VOICE_COOLDOWN = { idle: 120000, listening: 60000, done: 8000 };
     const lastVoiceAt = {};
     let saidInSession = {};
+    // 全局语音间隔：队列/多任务连续跑时不会连珠炮；完成与授权提示除外
+    const VOICE_GAP = 20000;
+    let lastPlayedAt = 0;
     const say = (s) => {
       if (voiceMuted) return;
       // 只给当前激活窗口配音：后台窗口/其他进程的任务不播，避免多个任务一起出声
       if (!document.hasFocus()) return;
+      const now = Date.now();
+      const isImportant = s === "done" || s === "approval";
+      if (!isImportant && now - lastPlayedAt < VOICE_GAP) return;
       const vset = VOICES[theme] || VOICES.cyber; // 语音随主题切换：夜间晓伊 / 白天晓晓
       const src = vset[s] || vset.idle;
-      const now = Date.now();
       if (RUN_ONCE.includes(s)) {
         if (saidInSession[s]) return;
         saidInSession[s] = true;
@@ -202,6 +207,7 @@ function buildPayload() {
         if (now - (lastVoiceAt[s] || 0) < cd) return;
         lastVoiceAt[s] = now;
       }
+      lastPlayedAt = now;
       voice.src = src;
       voice.play().catch(() => {});
     };
@@ -209,6 +215,7 @@ function buildPayload() {
     const sayForced = (s) => {
       if (voiceMuted) return;
       const vset = VOICES[theme] || VOICES.cyber;
+      lastPlayedAt = Date.now();
       voice.src = vset[s] || vset.idle;
       voice.play().catch(() => {});
     };
