@@ -33,6 +33,13 @@ fi
 
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
+# 探测 node 绝对路径：GUI 启动（Dock/双击）继承 launchd 的 PATH，不含 node，
+# 必须把绝对路径写进 wrapper，否则自动注入会报 command not found。
+NODE_BIN="$(command -v node 2>/dev/null || true)"
+if [ -n "$NODE_BIN" ]; then
+  NODE_BIN="$(cd "$(dirname "$NODE_BIN")" && pwd)/$(basename "$NODE_BIN")"
+fi
+
 refresh_ls() { [ -x "$LSREGISTER" ] && "$LSREGISTER" -f "$APP" >/dev/null 2>&1 || true; }
 
 is_our_wrapper() { [ -f "$1" ] && grep -q "$MARKER" "$1"; }
@@ -57,8 +64,8 @@ echo "    应用: $APP"
 
 echo "==> 2/3 备份原二进制并写入包装器"
 if [ -f "$REAL" ]; then
-  echo "    备份已存在（$REAL），跳过备份"
-  is_our_wrapper "$WRAP" || echo "    警告：$WRAP 不是本脚本生成的包装器，将被覆盖"
+  echo "    备份已存在: ${REAL}，跳过备份"
+  is_our_wrapper "$WRAP" || echo "    警告: ${WRAP} 不是本脚本生成的包装器，将被覆盖"
 else
   [ -f "$WRAP" ] || { echo "错误：未找到可执行文件 $WRAP"; exit 1; }
   mv "$WRAP" "$REAL"
@@ -73,16 +80,23 @@ cat > "$WRAP" <<'EOF'
 # 临时关闭自动皮肤（保留端口）：touch ~/.chengxiaobang/cxb-skin-off
 DIR="$(cd "$(dirname "$0")" && pwd)"
 PORT="${CXB_GF_PORT:-9229}"
+NODE_BIN="__NODE_BIN__"
 SKIN_JS="__SKIN_JS__"
-if [ -f "$SKIN_JS" ] && [ ! -f "$HOME/.chengxiaobang/cxb-skin-off" ]; then
-  nohup bash -c "sleep 6; node '$SKIN_JS' --inject" >> /tmp/cxb-skin-auto.log 2>&1 &
+if [ -n "$NODE_BIN" ] && [ -f "$SKIN_JS" ] && [ ! -f "$HOME/.chengxiaobang/cxb-skin-off" ]; then
+  nohup bash -c "sleep 6; '$NODE_BIN' '$SKIN_JS' --inject" >> /tmp/cxb-skin-auto.log 2>&1 &
 fi
 exec "$DIR/程小帮.real" --remote-debugging-port="$PORT" "$@"
 EOF
+sed -i '' "s|__NODE_BIN__|$NODE_BIN|" "$WRAP"
 sed -i '' "s|__SKIN_JS__|$SKIN_JS|" "$WRAP"
 chmod +x "$WRAP"
 chown "$(stat -f '%u:%g' "$REAL")" "$WRAP"
-echo "    包装器已写入: $WRAP（注入脚本: $SKIN_JS）"
+echo "    包装器已写入: ${WRAP}（注入脚本: ${SKIN_JS}）"
+if [ -n "$NODE_BIN" ]; then
+  echo "    自动注入运行器: ${NODE_BIN}"
+else
+  echo "    警告：未找到 node，自动注入将跳过（仅开启调试端口）。请安装 Node.js 后重跑本脚本。"
+fi
 
 echo "==> 3/3 刷新 LaunchServices"
 refresh_ls
