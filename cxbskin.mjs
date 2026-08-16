@@ -249,6 +249,10 @@ function buildPayload() {
     let lastMsgLen = 0;
     let wasRunning = false;
     let doneUntil = 0;
+    // 完成确认：运行停止后连续 DONE_CONFIRM_MS 无新活动，才算「整个事情做完」才播搞定
+    let donePending = false;
+    let doneSince = 0;
+    const DONE_CONFIRM_MS = 8000;
     const switchVideo = (s) => {
       cur = s;
       video.src = THEMES[theme].videos[s] || THEMES[theme].videos.idle;
@@ -291,14 +295,21 @@ function buildPayload() {
         if (running) {
           if (!wasRunning) saidInSession = {}; // 新任务会话：重置「每状态只播一次」
           wasRunning = true;
+          donePending = false; // 任务还在跑，取消完成确认
           if (hasApproval) return setTarget("approval");
           if (streaming) return setTarget("speaking");
           if (hasSpinner) return setTarget("thinking");
           return setTarget("acting");
         }
-        // 刚停止（运行→空闲）：短暂显示 done
+        // 运行刚停止：进入「完成确认」窗口，不立即报完成
         if (wasRunning) {
           wasRunning = false;
+          donePending = true;
+          doneSince = Date.now();
+        }
+        // 停止后连续 DONE_CONFIRM_MS 无新活动 → 确认整个事情做完，才显示完成并播「搞定啦」
+        if (donePending && Date.now() - doneSince > DONE_CONFIRM_MS) {
+          donePending = false;
           doneUntil = Date.now() + 4000;
         }
         if (Date.now() < doneUntil) return setTarget("done");
