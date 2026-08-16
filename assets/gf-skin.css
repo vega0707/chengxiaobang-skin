@@ -69,6 +69,15 @@ html.cxb-gf-skin .bg-popover {
   background-color: #1b1713 !important;
 }
 
+/* 浮动弹窗（下拉/菜单/建议框，portal 渲染）不透明，兜底防文字透出 */
+html.cxb-gf-skin [class*="backdrop-blur"],
+html.cxb-gf-skin [class*="dropdown"],
+html.cxb-gf-skin [class*="suggest"],
+html.cxb-gf-skin [class*="autocomplete"],
+html.cxb-gf-skin [class*="menu-"] {
+  background-color: #1b1713 !important;
+}
+
 html.cxb-gf-skin .app-sidebar {
   background: rgba(20, 17, 13, 0.72) !important;
   background-image: none !important;
