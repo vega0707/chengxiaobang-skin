@@ -65,6 +65,16 @@ html.cxb-gf-skin .bg-popover {
   background-color: rgba(20, 17, 13, 0.55) !important;
 }
 
+/* 下拉菜单/弹窗强制不透明 + 高 z-index，避免重叠 */
+html.cxb-gf-skin [role="menu"],
+html.cxb-gf-skin [role="listbox"],
+html.cxb-gf-skin [role="dialog"],
+html.cxb-gf-skin .dropdown,
+html.cxb-gf-skin .popover {
+  background-color: #1b1713 !important;
+  z-index: 9999 !important;
+}
+
 html.cxb-gf-skin .app-sidebar {
   background: rgba(20, 17, 13, 0.72) !important;
   background-image: none !important;
