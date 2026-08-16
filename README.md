@@ -9,6 +9,7 @@
 - 播完一轮再切，排队只留最新状态（不硬切、不闪烁）
 - 官方径向 mask 羽化，女友中心清晰、边缘自然融入
 - 输入框强制不透明，其他面板半透明透出女友
+- 可选 wrapper：默认启动程小帮即自动开调试端口并注入皮肤（见下文「自动开启」）
 
 ## 安装
 
@@ -31,11 +32,28 @@ node cxbskin.mjs --remove
 ### 首次使用
 注入后在程小帮里**点一下或打个字**（浏览器自动播放限制），之后视频正常播放。
 
+## 自动开启（可选，推荐）
+
+默认双击/Dock 启动程小帮**不带调试端口**，CDP 注入连不上。`install-auto-skin.sh` 会把程小帮可执行文件替换成包装脚本（原二进制备份为 `程小帮.real`），之后无论怎么启动都自动：
+
+1. 附加 `--remote-debugging-port=9229`（注入前提）
+2. 延迟 6 秒后台自动注入皮肤——**重启后皮肤自动出现，无需手动注入**
+
+```bash
+./install-auto-skin.sh            # 安装 wrapper
+./install-auto-skin.sh --remove   # 还原原生启动
+```
+
+- 临时关闭自动皮肤（保留端口）：`touch ~/.chengxiaobang/cxb-skin-off`；删除该文件恢复
+- 注入日志：`/tmp/cxb-skin-auto.log`
+- 程小帮**升级应用后 wrapper 会被覆盖**，升级后重新执行 `./install-auto-skin.sh` 即可
+
 ## 目录结构
 
 ```
 chengxiaobang-skin/
 ├── cxbskin.mjs              # 注入器（CDP 注入 CSS + 视频 + 状态机）
+├── install-auto-skin.sh     # 一键 wrapper：默认启动即带端口 + 自动注入（可 --remove 还原）
 ├── assets/
 │   ├── gf-skin.css          # 赛博主题 CSS
 │   ├── gf-warm.css          # 暖白主题 CSS
