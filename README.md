@@ -152,6 +152,14 @@ const WARM_REUSE = { idle: "idle", listening: "listening", thinking: "listening"
 
 或替换 `assets/themes/cyber/states/*.webm` 文件（BuddyLiveGF 解包里有 20 个变体视频可选）。
 
+## 更新日志
+
+- **2026-08-16 · 市场 rev 2（0.1.0）**：
+  - 新增 `install-auto-skin.sh`：一键安装启动包装器，**默认启动程小帮即自动开调试端口并注入皮肤**（原二进制备份为 `程小帮.real`，`--remove` 可还原；升级应用后需重装）
+  - 插件头像更换为紫色 icon
+  - 技能说明与本文档补充 wrapper 用法
+- **2026-08-16 · 市场 rev 1（0.1.0）**：首个版本——双主题（赛博/暖白）CDP 皮肤注入、7 状态视频、注入器技能、插件化打包与发布
+
 ## 参考
 
 - [CodexGF-Live Releases](https://github.com/zhulin025/CodexGF-Live-Releases) — 官方皮肤（含 style-patch.json）
