@@ -59,19 +59,13 @@ html.cxb-gf-skin .bg-card,
 html.cxb-gf-skin .bg-muted,
 html.cxb-gf-skin .bg-sidebar,
 html.cxb-gf-skin .bg-canvas-soft,
-html.cxb-gf-skin .bg-canvas-soft-2,
-html.cxb-gf-skin .bg-popover {
+html.cxb-gf-skin .bg-canvas-soft-2 {
   background-color: rgba(247, 243, 238, 0.55) !important;
 }
 
-/* 下拉菜单/弹窗强制不透明 + 高 z-index，避免重叠 */
-html.cxb-gf-skin [role="menu"],
-html.cxb-gf-skin [role="listbox"],
-html.cxb-gf-skin [role="dialog"],
-html.cxb-gf-skin .dropdown,
-html.cxb-gf-skin .popover {
+/* 下拉框/弹窗（.bg-popover）不透明，避免文字透出重叠 */
+html.cxb-gf-skin .bg-popover {
   background-color: #ffffff !important;
-  z-index: 9999 !important;
 }
 
 html.cxb-gf-skin .app-sidebar {
