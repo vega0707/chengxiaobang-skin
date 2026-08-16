@@ -205,14 +205,24 @@ function buildPayload() {
       voice.src = src;
       voice.play().catch(() => {});
     };
+    // 主题切换提示：绕过冷却/会话去重，强制播一句当前主题语音（静音时除外）
+    const sayForced = (s) => {
+      if (voiceMuted) return;
+      const vset = VOICES[theme] || VOICES.cyber;
+      voice.src = vset[s] || vset.idle;
+      voice.play().catch(() => {});
+    };
 
     // ---- 主题管理：跟随程小帮深浅外观 ----
     let theme = "cyber";
     const detectTheme = () => document.documentElement.classList.contains("dark") ? "cyber" : "warm";
     const applyTheme = (t) => {
+      const changed = t !== theme;
       theme = t;
       style.textContent = THEMES[t].css;
       switchVideo("idle");
+      // 深浅主题切换：强制播一句新主题语音，提示“换主题了”（每次切换都播）
+      if (changed) sayForced("idle");
     };
     new MutationObserver(() => {
       const t = detectTheme();
