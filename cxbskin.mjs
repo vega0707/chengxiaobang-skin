@@ -252,14 +252,17 @@ function buildPayload() {
         const typing = ae && (ae.tagName === "TEXTAREA" || ae.tagName === "INPUT") && (ae.value || "").length > 0;
         const msg = document.querySelector(".chat-scroll-area") || document.querySelector(".latest-main-message");
         const msgLen = msg ? msg.innerText.length : 0;
+        // 切换对话（消息区骤减）视为新会话：重置「每状态只播一次」并跳过本轮
+        if (msgLen < lastMsgLen - 500) { saidInSession = {}; lastMsgLen = msgLen; return; }
         const streaming = msgLen > lastMsgLen + 2;
         lastMsgLen = msgLen;
 
-        // 结构信号
-        const hasStop = !!document.querySelector('button[aria-label*="停止"],button[aria-label*="中断"],button[aria-label*="stop" i]');
-        const hasSpinner = !!document.querySelector('[class*="animate-spin"],[class*="spinner"],[data-testid*="think"]');
-        // 授权卡片：只认"可见的确认/授权弹窗按钮"，不匹配全文
-        const hasApproval = !!document.querySelector('[role="dialog"] button[aria-label*="允许"], [role="dialog"] button[aria-label*="批准"], [role="dialog"] button[aria-label*="授权"], [class*="approval"], [class*="permission"]');
+        // 结构信号（全部要求可见：隐藏的加载图标/动画不能误判为运行中）
+        const vis = (el) => !!el && el.offsetWidth > 0 && el.offsetHeight > 0;
+        const hasStop = [...document.querySelectorAll('button[aria-label*="停止"],button[aria-label*="中断"],button[aria-label*="stop" i]')].some(vis);
+        const hasSpinner = [...document.querySelectorAll('[class*="animate-spin"],[class*="spinner"],[data-testid*="think"]')].some(vis);
+        // 授权卡片：只认可见的确认/授权弹窗按钮
+        const hasApproval = [...document.querySelectorAll('[role="dialog"] button[aria-label*="允许"], [role="dialog"] button[aria-label*="批准"], [role="dialog"] button[aria-label*="授权"], [class*="approval"], [class*="permission"]')].some(vis);
 
         const running = hasStop || hasSpinner || streaming;
         if (running) {
