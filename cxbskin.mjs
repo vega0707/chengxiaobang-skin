@@ -222,31 +222,15 @@ function buildPayload() {
       voice.src = src;
       voice.play().catch(() => {});
     };
-    // 主题切换提示：绕过冷却/会话去重，强制播一句当前主题语音（静音时除外；正在播的语音不打断）
-    // 5 秒冷却：一次主题切换过程（class 可能多次变化）只播一次，避免多个「我在呢」连播
-    let lastForcedAt = 0;
-    const sayForced = (s) => {
-      if (voiceMuted) return;
-      if (!voice.paused) return;
-      const now = Date.now();
-      if (now - lastForcedAt < 5000) return;
-      lastForcedAt = now;
-      const vset = VOICES[theme] || VOICES.cyber;
-      lastPlayedAt = now;
-      voice.src = vset[s] || vset.idle;
-      voice.play().catch(() => {});
-    };
 
     // ---- 主题管理：跟随程小帮深浅外观 ----
     let theme = "cyber";
     const detectTheme = () => document.documentElement.classList.contains("dark") ? "cyber" : "warm";
     const applyTheme = (t) => {
-      const changed = t !== theme;
       theme = t;
       style.textContent = THEMES[t].css;
       switchVideo("idle");
-      // 深浅主题切换：强制播一句新主题语音，提示“换主题了”（每次切换都播）
-      if (changed) sayForced("idle");
+      // 主题切换不播语音提示（保持安静）
     };
     new MutationObserver(() => {
       const t = detectTheme();
