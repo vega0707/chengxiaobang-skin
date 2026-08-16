@@ -260,11 +260,13 @@ function buildPayload() {
     let target = "idle";
     let lastMsgLen = 0;
     let wasRunning = false;
+    let runSince = 0;
     let doneUntil = 0;
-    // 完成确认：运行停止后连续 DONE_CONFIRM_MS 无新活动，才算「整个事情做完」才播搞定
-    // 3 秒：做完几乎立即反馈，同时过滤输出中途的短暂停顿
+    // 完成确认：任务真实运行超过 RUN_MIN_MS 后停止，且连续 DONE_CONFIRM_MS 无新活动，
+    // 才算「整个事情做完」才播搞定；瞬时误判（运行不足阈值）不触发完成
     let donePending = false;
     let doneSince = 0;
+    const RUN_MIN_MS = 3000;
     const DONE_CONFIRM_MS = 3000;
     const switchVideo = (s) => {
       cur = s;
@@ -314,7 +316,7 @@ function buildPayload() {
 
         const running = hasStop || hasSpinner || streaming || hasThinking || hasRunning;
         if (running) {
-          if (!wasRunning) saidInSession = {}; // 新任务会话：重置「每状态只播一次」
+          if (!wasRunning) { saidInSession = {}; runSince = Date.now(); } // 新任务会话：重置「每状态只播一次」
           wasRunning = true;
           donePending = false; // 任务还在跑，取消完成确认
           if (hasApproval) return setTarget("approval");
@@ -322,11 +324,13 @@ function buildPayload() {
           if (hasThinking || hasSpinner) return setTarget("thinking");
           return setTarget("acting"); // hasStop / hasRunning
         }
-        // 运行刚停止：进入「完成确认」窗口，不立即报完成
+        // 运行刚停止：真实运行超过阈值才进入「完成确认」窗口（瞬时误判不算）
         if (wasRunning) {
           wasRunning = false;
-          donePending = true;
-          doneSince = Date.now();
+          if (Date.now() - runSince > RUN_MIN_MS) {
+            donePending = true;
+            doneSince = Date.now();
+          }
         }
         // 停止后连续 DONE_CONFIRM_MS 无新活动 → 确认整个事情做完，才显示完成并播「搞定啦」
         if (donePending && Date.now() - doneSince > DONE_CONFIRM_MS) {
