@@ -76,6 +76,7 @@ html.cxb-gf-skin .chat-layout-scope { background: transparent !important; }
 html.cxb-gf-skin textarea,
 html.cxb-gf-skin input[type="text"] {
   background-color: #1b1713 !important;
+  color: #eaf3ff !important;
 }
 
 /* 输入框容器（含 textarea 的 .bg-card）不透明 */
