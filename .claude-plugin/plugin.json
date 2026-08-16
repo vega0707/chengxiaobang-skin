@@ -1,10 +1,12 @@
 {
   "name": "chengxiaobang-skin",
   "displayName": "程小帮赛博女友皮肤",
-  "version": "0.5.14",
+  "version": "0.5.15",
   "description": "程小帮沉浸式女友皮肤：CDP 注入双主题（赛博/暖白）CSS 与 7 状态视频，昼夜双声线中文语音（晓伊/晓晓）带右下角静音开关，零修改应用本体。",
   "avatar": ".claude-plugin/avatar.png",
-  "author": { "name": "jw_xiao" },
+  "author": {
+    "name": "jw_xiao"
+  },
   "license": "MIT",
   "skills": "skills"
 }

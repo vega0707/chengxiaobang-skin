@@ -48,9 +48,12 @@ async function waitForMainTarget(timeoutMs = 30000) {
   while (Date.now() < deadline) {
     try {
       const targets = await listPageTargets();
-      // 主窗口：index.html（title 程小帮）；优先排除 floating-ball / mini-chat
-      const main = targets.find((t) => t.url.includes("index.html")) ||
-        targets.find((t) => /程小帮/.test(t.title || "")) || targets[0];
+      // 主窗口：index.html（title 程小帮）；排除启动页(data:text/html)、floating-ball / mini-chat。
+      // 启动早期 CDP 只有启动页 target，不能 fallback 到 targets[0]，否则会注入到启动页、主窗口无皮肤。
+      const isStartup = (t) => t.url.startsWith("data:") || t.url.includes("startup");
+      const main = targets.find((t) => !isStartup(t) && (t.url.includes("index.html") || /程小帮/.test(t.title || ""))) ||
+        targets.find((t) => !isStartup(t)) ||
+        null;
       if (main) return main;
     } catch (e) { lastErr = e; }
     await new Promise((r) => setTimeout(r, 400));
@@ -371,6 +374,12 @@ async function connect() {
   await cdp.open();
   await cdp.send("Runtime.enable");
   await cdp.send("Page.enable");
+  // 等待 DOM 就绪：启动初期 document.body 可能尚未创建，注入会挂
+  for (let i = 0; i < 60; i++) {
+    const ready = await cdp.eval("document.readyState").catch(() => "");
+    if (ready === "complete" || ready === "interactive") break;
+    await new Promise((r) => setTimeout(r, 250));
+  }
   return { cdp, target };
 }
 
