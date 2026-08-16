@@ -154,6 +154,8 @@ const WARM_REUSE = { idle: "idle", listening: "listening", thinking: "listening"
 
 ## 更新日志
 
+- **2026-08-16 · 市场 rev 3（0.3.0）**：
+  - 新增斜杠命令 `/install-auto-skin`：一键安装/还原启动包装器（默认启动即带皮肤）
 - **2026-08-16 · 市场 rev 2（0.2.0）**：
   - 新增 `install-auto-skin.sh`：一键安装启动包装器，**默认启动程小帮即自动开调试端口并注入皮肤**（原二进制备份为 `程小帮.real`，`--remove` 可还原；升级应用后需重装）
   - 插件头像更换为紫色 icon
