@@ -103,6 +103,10 @@ function readVoice(dir, state) {
   return "data:audio/mpeg;base64," + fs.readFileSync(path.join(dir, state + ".mp3")).toString("base64");
 }
 
+function readOfficialSpeaking() {
+  return "data:audio/mp4;base64," + fs.readFileSync(path.join(HERE, "assets", "voice", "speaking.mp4")).toString("base64");
+}
+
 function buildPayload() {
   const cyberCss = fs.readFileSync(path.join(HERE, "assets", "gf-skin.css"), "utf8");
   const warmCss = fs.readFileSync(path.join(HERE, "assets", "gf-warm.css"), "utf8");
@@ -116,10 +120,14 @@ function buildPayload() {
   for (const s of CYBER_STATES) warmVideos[s] = warmBase[WARM_REUSE[s]];
 
   // 状态语音：每个主题一套（cyber=晓伊活泼甜美 / warm=晓晓温柔知性），见 tools/tts.mjs
+  // speaking 状态统一用官方配音（speaking.mp4），其余状态用各自主题的 TTS 台词
   const voiceDir = path.join(HERE, "assets", "voice");
+  const officialSpeaking = readOfficialSpeaking();
   const voiceSets = { cyber: {}, warm: {} };
   for (const t of ["cyber", "warm"]) {
-    for (const s of CYBER_STATES) voiceSets[t][s] = readVoice(path.join(voiceDir, t), s);
+    for (const s of CYBER_STATES) {
+      voiceSets[t][s] = s === "speaking" ? officialSpeaking : readVoice(path.join(voiceDir, t), s);
+    }
   }
 
   const payload = `(() => {
@@ -194,8 +202,10 @@ function buildPayload() {
       if (voiceMuted) return;
       // 只给当前激活窗口配音：后台窗口/其他进程的任务不播，避免多个任务一起出声
       if (!document.hasFocus()) return;
+      if (s === "idle") return; // 空闲不说话（主题切换提示走 sayForced）
       const now = Date.now();
-      const isImportant = s === "done" || s === "approval";
+      // speaking（官方配音）是核心反馈，与 done/approval 一样豁免全局间隔
+      const isImportant = s === "done" || s === "approval" || s === "speaking";
       if (!isImportant && now - lastPlayedAt < VOICE_GAP) return;
       const vset = VOICES[theme] || VOICES.cyber; // 语音随主题切换：夜间晓伊 / 白天晓晓
       const src = vset[s] || vset.idle;
