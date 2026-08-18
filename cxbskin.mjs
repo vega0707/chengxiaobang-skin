@@ -48,10 +48,14 @@ async function waitForMainTarget(timeoutMs = 30000) {
   while (Date.now() < deadline) {
     try {
       const targets = await listPageTargets();
-      // 主窗口：index.html（title 程小帮）；排除启动页(data:text/html)、floating-ball / mini-chat。
-      // 启动早期 CDP 只有启动页 target，不能 fallback 到 targets[0]，否则会注入到启动页、主窗口无皮肤。
+      // 主窗口：index.html（非 floating-ball）；排除启动页和悬浮球。
+      // 注意：/程小帮/.test(title) 会同时匹配 "程小帮" 和 "程小帮悬浮球"，
+      // 而悬浮球在 targets 列表里排第一，导致皮肤注入到错误的窗口。
+      // 修复：优先选择 index.html（排除 floating-ball），其次 title 严格等于 "程小帮"。
       const isStartup = (t) => t.url.startsWith("data:") || t.url.includes("startup");
-      const main = targets.find((t) => !isStartup(t) && (t.url.includes("index.html") || /程小帮/.test(t.title || ""))) ||
+      const main = targets.find((t) => !isStartup(t) && t.url.includes("index.html") && !t.url.includes("floating-ball")) ||
+        targets.find((t) => !isStartup(t) && t.title === "程小帮") ||
+        targets.find((t) => !isStartup(t) && !t.url.includes("floating-ball")) ||
         targets.find((t) => !isStartup(t)) ||
         null;
       if (main) return main;
