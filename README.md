@@ -10,7 +10,7 @@
 - 播完一轮再切，排队只留最新状态（不硬切、不闪烁）
 - 官方径向 mask 羽化，女友中心清晰、边缘自然融入
 - 输入框强制不透明，其他面板半透明透出女友
-- 可选 wrapper：默认启动程小帮即自动开调试端口并注入皮肤（见下文「自动开启」）
+- 可选 LaunchAgent：默认启动程小帮即自动开调试端口并注入皮肤（见下文「自动开启」）
 
 ## 安装
 
@@ -35,26 +35,26 @@ node cxbskin.mjs --remove
 
 ## 自动开启（可选，推荐）
 
-默认双击/Dock 启动程小帮**不带调试端口**，CDP 注入连不上。`install-auto-skin.sh` 会把程小帮可执行文件替换成包装脚本（原二进制备份为 `程小帮.real`），之后无论怎么启动都自动：
+默认双击/Dock 启动程小帮**不带调试端口**，CDP 注入连不上。`install-auto-skin.sh` 会安装用户级 LaunchAgent（**不修改官方主程序签名**）：发现普通启动后，用 `--remote-debugging-port=9229` 重新拉起并注入皮肤。默认同时替换 Dock/悬浮窗图标。
 
-1. 附加 `--remote-debugging-port=9229`（注入前提）
-2. 延迟 6 秒后台自动注入皮肤——**重启后皮肤自动出现，无需手动注入**
+不要再把 `Contents/MacOS/程小帮` 替换成 bash 包装器，macOS 会因签名无效直接杀掉进程。
 
 ```bash
-./install-auto-skin.sh            # 安装 wrapper
-./install-auto-skin.sh --remove   # 还原原生启动
+./install-auto-skin.sh            # 安装守护进程 + 图标
+./install-auto-skin.sh --no-icons # 只装守护进程
+./install-auto-skin.sh --remove   # 卸载并还原
 ```
 
-- 临时关闭自动皮肤（保留端口）：`touch ~/.chengxiaobang/cxb-skin-off`；删除该文件恢复
+- 临时关闭自动皮肤：`touch ~/.chengxiaobang/cxb-skin-off`；删除该文件恢复
 - 注入日志：`/tmp/cxb-skin-auto.log`
-- 程小帮**升级应用后 wrapper 会被覆盖**，升级后重新执行 `./install-auto-skin.sh` 即可
 
 ## 目录结构
 
 ```
 chengxiaobang-skin/
 ├── cxbskin.mjs              # 注入器（CDP 注入 CSS + 视频 + 状态机 + 状态语音）
-├── install-auto-skin.sh     # 一键 wrapper：默认启动即带端口 + 自动注入（可 --remove 还原）
+├── auto-skin-daemon.sh      # LaunchAgent 守护进程：发现启动后带调试端口并注入
+├── install-auto-skin.sh     # 安装守护进程 + 可选图标替换（可 --remove 还原）
 ├── tools/
 │   ├── tts.mjs              # 状态语音生成脚本（Edge TTS，可改台词重新生成）
 │   └── package.json
@@ -182,6 +182,7 @@ const WARM_REUSE = { idle: "idle", listening: "listening", thinking: "listening"
 
 ## 更新日志
 
+- **2026-08-19 · 0.5.22**：自动皮肤改为用户级 LaunchAgent，不再替换官方已签名主程序（旧 wrapper 会被 AMFI SIGKILL 导致启动失败）；保留 Dock/悬浮窗图标替换；注入目标继续排除悬浮球窗口
 - **2026-08-16 · 市场 rev 20（0.5.15）**：修复重启后皮肤不加载——自动注入曾注入到启动页（data:text/html）而非主窗口；主窗口选择排除启动页并等待 DOM 就绪后再注入
 - **2026-08-16 · 市场 rev 19（0.5.14）**：修复 wrapper 自动注入失效——启动包装器改用 node 绝对路径（GUI 启动环境 PATH 无 node 导致重启后皮肤不自动加载），install-auto-skin.sh 会探测 node 路径并写入包装器
 - **2026-08-16 · 市场 rev 18（0.5.13）**：去掉主题切换提示音——切换深浅主题完全安静，不再播「我在呢」

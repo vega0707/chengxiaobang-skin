@@ -1,6 +1,6 @@
 ---
 name: cxb-gf-skin
-description: 应用、移除或验证程小帮「赛博女友」沉浸式皮肤（CDP 注入，双主题 CSS + 状态视频，零修改应用本体），以及安装/还原「默认启动即带皮肤」的启动包装器（install-auto-skin.sh）。用户提到女友皮肤、赛博女友、注入皮肤、换皮肤、恢复原生界面、皮肤截图、自动注入、开机/启动自动带皮肤时使用。皮肤脚本与资产都打包在本插件内，用 ${CLAUDE_PLUGIN_ROOT} 定位，不要到别处找。
+description: 应用、移除或验证程小帮「赛博女友」沉浸式皮肤（CDP 注入，双主题 CSS + 状态视频，零修改应用本体），以及安装/还原「默认启动即带皮肤」的 LaunchAgent 守护进程（install-auto-skin.sh）。用户提到女友皮肤、赛博女友、注入皮肤、换皮肤、恢复原生界面、皮肤截图、自动注入、开机/启动自动带皮肤时使用。皮肤脚本与资产都打包在本插件内，用 ${CLAUDE_PLUGIN_ROOT} 定位，不要到别处找。
 ---
 
 # 程小帮赛博女友皮肤
@@ -41,19 +41,20 @@ node "${CLAUDE_PLUGIN_ROOT}/cxbskin.mjs" --inject
 node "${CLAUDE_PLUGIN_ROOT}/cxbskin.mjs" --remove
 ```
 
-## 自动开启皮肤（wrapper，用户要求「默认启动就带皮肤」时用）
+## 自动开启皮肤（LaunchAgent，用户要求「默认启动就带皮肤」时用）
 
-程小帮默认双击启动不带调试端口，注入连不上。`install-auto-skin.sh` 把程小帮可执行文件替换为包装脚本（原二进制备份为同目录 `程小帮.real`），之后**无论怎么启动都自动带调试端口并在 6 秒后自动注入皮肤**：
+程小帮默认双击启动不带调试端口，注入连不上。**禁止**再把官方 `.app` 里的已签名主程序替换成 bash 包装器——macOS AMFI 会直接 SIGKILL，表现为启动失败。
+
+改用用户级 LaunchAgent：发现普通启动后，用 `--remote-debugging-port=9229` 重新拉起官方二进制并注入。不改主程序签名。可选同时替换 Dock/悬浮窗图标。
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/install-auto-skin.sh"            # 安装 wrapper
-bash "${CLAUDE_PLUGIN_ROOT}/install-auto-skin.sh" --remove   # 还原原生启动
+bash "${CLAUDE_PLUGIN_ROOT}/install-auto-skin.sh"            # 安装守护进程 + 图标
+bash "${CLAUDE_PLUGIN_ROOT}/install-auto-skin.sh" --no-icons # 只装守护进程
+bash "${CLAUDE_PLUGIN_ROOT}/install-auto-skin.sh" --remove   # 卸载并还原
 ```
 
-- 临时关闭自动皮肤（保留端口）：`touch ~/.chengxiaobang/cxb-skin-off`；删除该文件恢复
-- 注入日志：`/tmp/cxb-skin-auto.log`；启动后约 8-10 秒皮肤生效
-- 安装 wrapper 会修改应用可执行文件（签名失效风险），必须向用户说明并获得确认后再执行
-- 程小帮升级应用后 wrapper 会被覆盖，需重新执行安装脚本
+- 临时关闭自动皮肤：`touch ~/.chengxiaobang/cxb-skin-off`；删除该文件恢复
+- 注入日志：`/tmp/cxb-skin-auto.log`；Dock 启动后约 3–8 秒皮肤生效（首次会快速重启一次以附上调试端口）
 
 ## 截图验证
 
