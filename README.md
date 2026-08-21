@@ -35,9 +35,9 @@ node cxbskin.mjs --remove
 
 ## 自动开启（可选，推荐）
 
-默认双击/Dock 启动程小帮**不带调试端口**，CDP 注入连不上。`install-auto-skin.sh` 会安装用户级 LaunchAgent（**不修改官方主程序签名**）：发现普通启动后，用 `--remote-debugging-port=9229` 重新拉起并注入皮肤。默认同时替换 Dock/悬浮窗图标。
+默认双击/Dock 启动程小帮**不带调试端口**，CDP 注入连不上。`install-auto-skin.sh` 会安装用户级 LaunchAgent（**不修改官方主程序签名**）：发现普通启动后，用 `open -b`（LaunchServices）带上 `--remote-debugging-port=9229` 重新拉起并注入皮肤。默认同时替换 Dock/悬浮窗图标。
 
-不要再把 `Contents/MacOS/程小帮` 替换成 bash 包装器，macOS 会因签名无效直接杀掉进程。
+不要再把 `Contents/MacOS/程小帮` 替换成 bash 包装器，macOS 会因签名无效直接杀掉进程。也不要用 `nohup`/直接跑二进制附调试端口——那样责任进程会变成 shell，**屏幕录制权限无法正确授予程小帮**。
 
 ```bash
 ./install-auto-skin.sh            # 安装守护进程 + 图标
@@ -182,6 +182,7 @@ const WARM_REUSE = { idle: "idle", listening: "listening", thinking: "listening"
 
 ## 更新日志
 
+- **2026-08-22 · 0.5.23**：守护进程 / `--launch` 改为 `open -b` 经 LaunchServices 拉起，并纠正「已带调试端口但挂在 shell 下」的错误责任进程，避免屏幕录制 TCC 失效
 - **2026-08-19 · 0.5.22**：自动皮肤改为用户级 LaunchAgent，不再替换官方已签名主程序（旧 wrapper 会被 AMFI SIGKILL 导致启动失败）；保留 Dock/悬浮窗图标替换；注入目标继续排除悬浮球窗口
 - **2026-08-16 · 市场 rev 20（0.5.15）**：修复重启后皮肤不加载——自动注入曾注入到启动页（data:text/html）而非主窗口；主窗口选择排除启动页并等待 DOM 就绪后再注入
 - **2026-08-16 · 市场 rev 19（0.5.14）**：修复 wrapper 自动注入失效——启动包装器改用 node 绝对路径（GUI 启动环境 PATH 无 node 导致重启后皮肤不自动加载），install-auto-skin.sh 会探测 node 路径并写入包装器

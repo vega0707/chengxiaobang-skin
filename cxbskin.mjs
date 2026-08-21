@@ -12,14 +12,17 @@
  *   node cxbskin.mjs --remove          移除皮肤（恢复原生界面）
  *   node cxbskin.mjs --shot <out.png>  截图当前主窗口
  */
-import { spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
+
+const execFileAsync = promisify(execFile);
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.CXB_GF_PORT || 9229);
-const APP_EXE = process.env.CXB_GF_APP || "/Applications/程小帮.app/Contents/MacOS/程小帮";
+const BUNDLE_ID = process.env.CXB_BUNDLE_ID || "com.chengxiaobang.desktop";
 const PORTRAIT = path.join(HERE, "assets", "gf-portrait.png");
 const SKIN_CSS = path.join(HERE, "assets", "gf-skin.css");
 
@@ -397,11 +400,13 @@ async function launchApp() {
     console.log(`端口 ${PORT} 已有 CDP 服务（程小帮已在调试模式运行）。`);
     return;
   }
-  const child = spawn(APP_EXE, [`--remote-debugging-port=${PORT}`], {
-    detached: true, stdio: "ignore",
-  });
-  child.unref();
-  console.log(`已启动: ${APP_EXE} --remote-debugging-port=${PORT}`);
+  // 必须走 LaunchServices（open -b），不能 spawn 二进制：否则责任进程变成 node，录屏权限失效。
+  await execFileAsync("open", [
+    "-b", BUNDLE_ID,
+    "--args",
+    `--remote-debugging-port=${PORT}`,
+  ]);
+  console.log(`已通过 open 启动: ${BUNDLE_ID} --remote-debugging-port=${PORT}`);
   console.log("注意：若程小帮此前已在运行（无调试端口），需要先完全退出再启动本脚本。");
 }
 
