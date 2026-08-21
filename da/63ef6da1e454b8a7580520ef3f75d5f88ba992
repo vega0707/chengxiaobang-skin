@@ -1,0 +1,25 @@
+auto-skin-daemon.sh
+  s_455123f5822228::t_c05a7e3850caae 4-6,12,57-63,67,69,77-113,146-151,155,169,174
+cxbskin.mjs
+  s_455123f5822228::t_e76df5a7e53e0b 15,18,21-22,25
+  s_455123f5822228::t_d8127fae7fc15a 403-409
+README.md
+  s_455123f5822228::t_40070a12839d9a 38,40
+  s_455123f5822228::t_7253286e075738 185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.40-trip",
+  "base_commit_sha": "da63ef6da1e454b8a7580520ef3f75d5f88ba992",
+  "prompts": {},
+  "sessions": {
+    "s_455123f5822228": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "15671789-be11-407f-a824-c255cf734794",
+        "model": "default"
+      },
+      "human_author": "vega <jw_xiao@trip.com>"
+    }
+  }
+}
